@@ -35,9 +35,8 @@ public class PreparedStatementLogProxy
             throws Throwable {
         try {
             if (EXECUTE_METHODS.contains(method.getName())) {
-                String oneLineSql = BlackcatUtils.oneLineSql(sql);
                 String valueString = getValueString();
-                if (BlackcatUtils.HasBlackcat) {
+                if (BlackcatUtils.HasBlackcat && !"[]".equals(valueString)) {
                     BlackcatUtils.log("SQL.Parameters", valueString);
                 }
 
