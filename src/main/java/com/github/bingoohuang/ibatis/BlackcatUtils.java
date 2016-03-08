@@ -1,5 +1,8 @@
 package com.github.bingoohuang.ibatis;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public class BlackcatUtils {
     public static boolean classExists(String className) {
         try {
@@ -19,5 +22,15 @@ public class BlackcatUtils {
 
         com.github.bingoohuang.blackcat.javaagent.callback
                 .Blackcat.log(msgType, pattern, args);
+    }
+
+
+    static Pattern OneLineTrimPattern = Pattern.compile("[\\s\r\n]+");
+
+    public static String oneLineSql(String original) {
+        Matcher matcher = OneLineTrimPattern.matcher(original);
+        String oneLine = matcher.replaceAll(" ");
+
+        return oneLine;
     }
 }

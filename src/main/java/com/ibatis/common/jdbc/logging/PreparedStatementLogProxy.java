@@ -14,6 +14,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
+
 /**
  * PreparedStatement proxy to add logging
  */
@@ -34,15 +35,14 @@ public class PreparedStatementLogProxy
             throws Throwable {
         try {
             if (EXECUTE_METHODS.contains(method.getName())) {
-                String oneLineSql = removeBreakingWhitespace(sql);
+                String oneLineSql = BlackcatUtils.oneLineSql(sql);
                 String valueString = getValueString();
                 if (BlackcatUtils.HasBlackcat) {
-                    BlackcatUtils.log("SQL.Executing", sql);
                     BlackcatUtils.log("SQL.Parameters", valueString);
                 }
 
                 if (log.isDebugEnabled()) {
-                    log.debug("{pstm-" + id + "} Executing Statement: " + oneLineSql);
+//                    log.debug("{pstm-" + id + "} Executing Statement: " + oneLineSql);
                     log.debug("{pstm-" + id + "} Parameters: " + valueString);
                     log.debug("{pstm-" + id + "} Types: " + getTypeString());
                 }

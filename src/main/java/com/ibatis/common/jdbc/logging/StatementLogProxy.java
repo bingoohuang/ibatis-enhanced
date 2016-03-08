@@ -28,7 +28,7 @@ public class StatementLogProxy extends BaseLogProxy implements InvocationHandler
     public Object invoke(Object proxy, Method method, Object[] params) throws Throwable {
         try {
             if (EXECUTE_METHODS.contains(method.getName())) {
-                String oneLineSql = removeBreakingWhitespace((String) params[0]);
+                String oneLineSql = BlackcatUtils.oneLineSql((String) params[0]);
                 BlackcatUtils.log("SQL.Statement", oneLineSql);
 
                 if (log.isDebugEnabled()) {

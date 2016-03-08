@@ -33,23 +33,29 @@ public class ConnectionLogProxy extends BaseLogProxy implements InvocationHandle
     public Object invoke(Object proxy, Method method, Object[] params)
             throws Throwable {
         try {
-            String sql = removeBreakingWhitespace((String) params[0]);
-            BlackcatUtils.log("SQL.Preparing", sql);
 
             if ("prepareStatement".equals(method.getName())) {
+                String param0 = (String) params[0];
+                String oneLineSql = BlackcatUtils.oneLineSql(param0);
+                BlackcatUtils.log("SQL.Preparing", oneLineSql);
+
                 if (log.isDebugEnabled()) {
-                    log.debug("{conn-" + id + "} Preparing Statement: " + sql);
+                    log.debug("{conn-" + id + "} Preparing Statement: " + oneLineSql);
                 }
                 PreparedStatement stmt = (PreparedStatement) method.invoke(connection, params);
-                return PreparedStatementLogProxy.newInstance(stmt, (String) params[0]);
+                return PreparedStatementLogProxy.newInstance(stmt, param0);
             }
 
             if ("prepareCall".equals(method.getName())) {
+                String param0 = (String) params[0];
+                String oneLineSql = BlackcatUtils.oneLineSql(param0);
+                BlackcatUtils.log("SQL.Preparing", oneLineSql);
+
                 if (log.isDebugEnabled()) {
-                    log.debug("{conn-" + id + "} Preparing Call: " + sql);
+                    log.debug("{conn-" + id + "} Preparing Call: " + oneLineSql);
                 }
                 PreparedStatement stmt = (PreparedStatement) method.invoke(connection, params);
-                return PreparedStatementLogProxy.newInstance(stmt, (String) params[0]);
+                return PreparedStatementLogProxy.newInstance(stmt, param0);
             }
 
             if ("createStatement".equals(method.getName())) {
