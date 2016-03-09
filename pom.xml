@@ -74,6 +74,11 @@
             <optional>true</optional>
         </dependency>
         <dependency>
+            <groupId>cn.ai.ebs</groupId>
+            <artifactId>npf-mock</artifactId>
+            <version>0.0.1</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.ibatis</groupId>
             <artifactId>ibatis-sqlmap</artifactId>
             <version>2.3.4.726</version>
