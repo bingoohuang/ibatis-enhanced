@@ -39,29 +39,27 @@ public class ResultSetLogProxy extends BaseLogProxy implements InvocationHandler
                 if (params[0] instanceof String) {
                     setColumn(params[0], rs.wasNull() ? null : o);
                 }
+
             } else if ("next".equals(method.getName())
                     || "close".equals(method.getName())) {
-                if ("next".equals(method.getName())) ++rows;
+                if ("next".equals(method.getName()) && (Boolean) o) ++rows;
 
                 String s = getValueString();
                 if (!"[]".equals(s)) {
                     if (first) {
                         first = false;
                         String columnString = getColumnString();
-                        if (BlackcatUtils.HasBlackcat)
-                            BlackcatUtils.log("SQL.Header", columnString);
+                        BlackcatUtils.log("SQL.Header", columnString);
 
-                        if (log.isDebugEnabled()) {
+                        if (log.isDebugEnabled())
                             log.debug("{rset-" + id + "} Header: " + columnString);
-                        }
                     }
 
-                    if (maxRows <= 0 || rows <= maxRows)
+                    if (maxRows <= 0 || rows <= maxRows + 1)
                         BlackcatUtils.log("SQL.Result", s);
 
-                    if (log.isDebugEnabled()) {
+                    if (log.isDebugEnabled())
                         log.debug("{rset-" + id + "} Result: " + s);
-                    }
                 }
                 if (maxRows > 0 && rows - maxRows > 0 && "close".equals(method.getName()))
                     BlackcatUtils.log("SQL.Result", "[And more " + (rows - maxRows) + " rows ignored]");
