@@ -24,8 +24,10 @@ public class ErrorContext {
     public void setResource(String resource) {
         this.resource = resource;
 
-        // 这里依赖setObjectId在setResource之前调用
-        if (objectId != null && !ExcludedId.matcher(objectId).find())
+        // 这里依赖setActivity, setObjectId在setResource之前调用
+        if (objectId != null
+                && !"applying a result map".equals(activity) // 结果映射的排除
+                && !ExcludedId.matcher(objectId).find()) // 辅助的排除
             Blackcat.log("SQL.ID", "ID:{}, RESOURCE:{}", objectId, resource);
     }
 
