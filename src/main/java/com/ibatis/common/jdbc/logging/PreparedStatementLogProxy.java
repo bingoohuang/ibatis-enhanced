@@ -1,5 +1,6 @@
 package com.ibatis.common.jdbc.logging;
 
+import com.alibaba.fastjson.JSON;
 import com.github.bingoohuang.ibatis.BlackcatUtils;
 import com.ibatis.common.beans.ClassInfo;
 import com.ibatis.common.logging.Log;
@@ -82,7 +83,11 @@ public class PreparedStatementLogProxy
             return new Integer(proxy.hashCode());
         }
 
-        return method.invoke(statement, params);
+        Object result = method.invoke(statement, params);
+        if ("getUpdateCount".equals(method.getName()))
+            BlackcatUtils.log("SQL.UpdateCount", JSON.toJSONString(result));
+
+        return result;
     }
 
     /**
