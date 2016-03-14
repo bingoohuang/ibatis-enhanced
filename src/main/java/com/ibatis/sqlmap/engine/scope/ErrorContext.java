@@ -28,7 +28,7 @@ public class ErrorContext {
         if (objectId != null
                 && !"applying a result map".equals(activity) // 结果映射的排除
                 && !ExcludedId.matcher(objectId).find()) // 辅助的排除
-            Blackcat.log("SQL.ID", "ID:{}, RESOURCE:{}", objectId, resource);
+            Blackcat.log("SQL.ID", "ID:{}, RESOURCE:{}, ACTIVITY:{}", objectId, resource, activity);
     }
 
     public String getActivity() {

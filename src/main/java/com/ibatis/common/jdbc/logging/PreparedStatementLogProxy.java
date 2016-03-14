@@ -14,6 +14,10 @@ import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.github.bingoohuang.ibatis.BlackcatUtils.createEvalSql;
 
 
 /**
@@ -32,6 +36,15 @@ public class PreparedStatementLogProxy
         this.sql = sql;
     }
 
+    protected List columnValues = new ArrayList();
+
+    @Override
+    protected void setColumn(Object key, Object value) {
+        super.setColumn(key, value);
+
+        columnValues.add(value);
+    }
+
     public Object invoke(Object proxy, Method method, Object[] params)
             throws Throwable {
         try {
@@ -39,6 +52,7 @@ public class PreparedStatementLogProxy
                 String valueString = getValueString();
                 if (BlackcatUtils.HasBlackcat && !"[]".equals(valueString)) {
                     BlackcatUtils.log("SQL.Parameters", valueString);
+                    BlackcatUtils.log("SQL.Eval", createEvalSql(sql, columnValues));
                 }
 
                 if (log.isDebugEnabled()) {
