@@ -5,6 +5,7 @@ import com.github.bingoohuang.ibatis.BlackcatUtils;
 import com.ibatis.common.beans.ClassInfo;
 import com.ibatis.common.logging.Log;
 import com.ibatis.common.logging.LogFactory;
+import lombok.val;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
@@ -25,7 +26,6 @@ import static com.github.bingoohuang.ibatis.BlackcatUtils.createEvalSql;
  */
 public class PreparedStatementLogProxy
         extends BaseLogProxy implements InvocationHandler {
-
     private static final Log log = LogFactory.getLog(PreparedStatement.class);
 
     private PreparedStatement statement;
@@ -58,11 +58,12 @@ public class PreparedStatementLogProxy
                 if (log.isDebugEnabled()) {
 //                    log.debug("{pstm-" + id + "} Executing Statement: " + oneLineSql);
                     log.debug("{pstm-" + id + "} Parameters: " + valueString);
-                    log.debug("{pstm-" + id + "} Types: " + getTypeString());
+//                    log.debug("{pstm-" + id + "} Types: " + getTypeString());
+                    log.debug("{pstm-" + id + "} Eval: " + createEvalSql(sql, columnValues));
                 }
                 clearColumnInfo();
                 if ("executeQuery".equals(method.getName())) {
-                    ResultSet rs = (ResultSet) method.invoke(statement, params);
+                    val rs = (ResultSet) method.invoke(statement, params);
                     return rs != null ? ResultSetLogProxy.newInstance(rs) : null;
                 } else {
                     return method.invoke(statement, params);

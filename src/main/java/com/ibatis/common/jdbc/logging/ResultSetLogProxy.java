@@ -1,10 +1,10 @@
 package com.ibatis.common.jdbc.logging;
 
-import com.ailk.ecs.esf.conf.EsfProperties;
 import com.github.bingoohuang.ibatis.BlackcatUtils;
 import com.ibatis.common.beans.ClassInfo;
 import com.ibatis.common.logging.Log;
 import com.ibatis.common.logging.LogFactory;
+import lombok.val;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -15,7 +15,6 @@ import java.sql.ResultSet;
  * ResultSet proxy to add logging
  */
 public class ResultSetLogProxy extends BaseLogProxy implements InvocationHandler {
-
     private static final Log log = LogFactory.getLog(ResultSet.class);
 
     int rows = 0;
@@ -30,43 +29,57 @@ public class ResultSetLogProxy extends BaseLogProxy implements InvocationHandler
         }
     }
 
-    static int maxRows = EsfProperties.getInt("Blackcat.SQLResult.MaxRows", 5);
+    static int maxRows = 5;
 
     public Object invoke(Object proxy, Method method, Object[] params) throws Throwable {
         try {
-            Object o = method.invoke(rs, params);
-            if (GET_METHODS.contains(method.getName())) {
+            Object result = method.invoke(rs, params);
+            String methodName = method.getName();
+            if (GET_METHODS.contains(methodName)) {
                 if (params[0] instanceof String) {
-                    setColumn(params[0], rs.wasNull() ? null : o);
+                    setColumn(params[0], rs.wasNull() ? null : result);
                 }
+            } else {
+                boolean isNext = "next".equals(methodName);
+                boolean isClose = "close".equals(methodName);
+                if (isNext || isClose) {
+                    if (isNext && (Boolean) result) ++rows;
 
-            } else if ("next".equals(method.getName())
-                    || "close".equals(method.getName())) {
-                if ("next".equals(method.getName()) && (Boolean) o) ++rows;
+                    String s = getValueString();
+                    if (!"[]".equals(s)) {
+                        if (first) {
+                            first = false;
+                            String columnString = getColumnString();
+                            BlackcatUtils.log("SQL.Header", columnString);
 
-                String s = getValueString();
-                if (!"[]".equals(s)) {
-                    if (first) {
-                        first = false;
-                        String columnString = getColumnString();
-                        BlackcatUtils.log("SQL.Header", columnString);
+                            if (log.isDebugEnabled())
+                                log.debug("{rset-" + id + "} Header: " + columnString);
+                        }
 
-                        if (log.isDebugEnabled())
-                            log.debug("{rset-" + id + "} Header: " + columnString);
+                        if (rows <= maxRows + 1)
+                            BlackcatUtils.log("SQL.Result", s);
+
+                        if (log.isDebugEnabled() && rows <= maxRows + 1)
+                            log.debug("{rset-" + id + "} Result: " + s);
                     }
 
-                    if (maxRows <= 0 || rows <= maxRows + 1)
-                        BlackcatUtils.log("SQL.Result", s);
+                    if (isNext && !(Boolean) result) {
+                        if (log.isDebugEnabled() && rows > maxRows + 1)
+                            log.debug("{rset-" + id + "} Result rows "
+                                    + (rows - maxRows) + " ignored: ");
+                    }
 
-                    if (log.isDebugEnabled())
-                        log.debug("{rset-" + id + "} Result: " + s);
+                    int ignoredRows = rows - maxRows - 1;
+                    if (ignoredRows > 0 && isClose) {
+                        BlackcatUtils.log("SQL.Result",
+                                "[And more " + ignoredRows
+                                        + " rows ignored]");
+                    }
+
+                    clearColumnInfo();
                 }
-                if (maxRows > 0 && rows - maxRows > 0 && "close".equals(method.getName()))
-                    BlackcatUtils.log("SQL.Result", "[And more " + (rows - maxRows) + " rows ignored]");
-
-                clearColumnInfo();
             }
-            return o;
+            return result;
         } catch (Throwable t) {
             throw ClassInfo.unwrapThrowable(t);
         }
@@ -79,10 +92,10 @@ public class ResultSetLogProxy extends BaseLogProxy implements InvocationHandler
      * @return - the ResultSet with logging
      */
     public static ResultSet newInstance(ResultSet rs) {
-        InvocationHandler handler = new ResultSetLogProxy(rs);
-        ClassLoader cl = ResultSet.class.getClassLoader();
-        return (ResultSet) Proxy.newProxyInstance(
-                cl, new Class[]{ResultSet.class}, handler);
+        val handler = new ResultSetLogProxy(rs);
+        val cl = ResultSet.class.getClassLoader();
+        return (ResultSet) Proxy.newProxyInstance(cl,
+                new Class[]{ResultSet.class}, handler);
     }
 
     /**

@@ -5,6 +5,7 @@ import com.google.common.base.Throwables;
 import com.ibatis.common.beans.ClassInfo;
 import com.ibatis.common.logging.Log;
 import com.ibatis.common.logging.LogFactory;
+import lombok.val;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -17,7 +18,6 @@ import java.sql.Statement;
  * Connection proxy to add logging
  */
 public class ConnectionLogProxy extends BaseLogProxy implements InvocationHandler {
-
     private static final Log log = LogFactory.getLog(Connection.class);
 
     private Connection connection;
@@ -42,7 +42,7 @@ public class ConnectionLogProxy extends BaseLogProxy implements InvocationHandle
                 if (log.isDebugEnabled()) {
                     log.debug("{conn-" + id + "} Preparing Statement: " + oneLineSql);
                 }
-                PreparedStatement stmt = (PreparedStatement) method.invoke(connection, params);
+                val stmt = (PreparedStatement) method.invoke(connection, params);
                 return PreparedStatementLogProxy.newInstance(stmt, param0);
             }
 
@@ -54,12 +54,12 @@ public class ConnectionLogProxy extends BaseLogProxy implements InvocationHandle
                 if (log.isDebugEnabled()) {
                     log.debug("{conn-" + id + "} Preparing Call: " + oneLineSql);
                 }
-                PreparedStatement stmt = (PreparedStatement) method.invoke(connection, params);
+                val stmt = (PreparedStatement) method.invoke(connection, params);
                 return PreparedStatementLogProxy.newInstance(stmt, param0);
             }
 
             if ("createStatement".equals(method.getName())) {
-                Statement stmt = (Statement) method.invoke(connection, params);
+                val stmt = (Statement) method.invoke(connection, params);
                 return StatementLogProxy.newInstance(stmt);
             }
 

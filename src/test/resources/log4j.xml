@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration SYSTEM
+        "/Users/bingoohuang/github/ibatis-enhanced/src/test/resources/log4j.dtd" >
+<log4j:configuration>
+    <appender name="console" class="org.apache.log4j.ConsoleAppender">
+        <param name="Threshold" value="debug" />
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{ABSOLUTE} %5p %c:%L - %m%n" />
+        </layout>
+    </appender>
+
+    <logger name="java.sql" additivity="false">
+        <level value="debug" />
+        <appender-ref ref="console" />
+    </logger>
+
+    <logger name="com.github.bingoohuang.blackcat" additivity="false">
+        <level value="info" />
+        <appender-ref ref="console" />
+    </logger>
+
+</log4j:configuration>

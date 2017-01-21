@@ -1,7 +1,9 @@
 package com.github.bingoohuang.ibatis;
 
+import com.github.bingoohuang.blackcat.javaagent.callback.Blackcat;
+import org.joda.time.DateTime;
+
 import java.sql.Date;
-import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -16,15 +18,13 @@ public class BlackcatUtils {
         }
     }
 
-
     public static boolean HasBlackcat = classExists(
             "com.github.bingoohuang.blackcat.javaagent.callback.Blackcat");
 
     public static void log(String msgType, String pattern, Object... args) {
         if (!HasBlackcat) return;
 
-        com.github.bingoohuang.blackcat.javaagent.callback
-                .Blackcat.log(msgType, pattern, args);
+        Blackcat.log(msgType, pattern, args);
     }
 
 
@@ -34,12 +34,12 @@ public class BlackcatUtils {
         Matcher matcher = OneLineTrimPattern.matcher(original);
         String oneLine = matcher.replaceAll(" ");
 
-        return oneLine;
+        return oneLine.trim();
     }
 
     public static String createEvalSql(String evalSqlTemplate, List boundParams) {
         int size = boundParams.size();
-        if (size == 0) return evalSqlTemplate;
+        if (size == 0) return BlackcatUtils.oneLineSql(evalSqlTemplate);
 
         StringBuilder eval = new StringBuilder();
         int startPos = 0;
@@ -47,7 +47,6 @@ public class BlackcatUtils {
         int evalSqlLength = evalSqlTemplate.length();
 
         String placeholder = "?";
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-DD HH:mm:ss");
 
         while (startPos < evalSqlLength) {
             int pos = evalSqlTemplate.indexOf(placeholder, startPos);
@@ -58,9 +57,7 @@ public class BlackcatUtils {
 
             if (index < size) {
                 Object boundParam = boundParams.get(index);
-
-                String evalBoundParam = createEvalBoundParam(simpleDateFormat, boundParam);
-                eval.append(evalBoundParam);
+                eval.append(createEvalBoundParam(boundParam));
             } else {
                 eval.append('?');
             }
@@ -70,23 +67,22 @@ public class BlackcatUtils {
 
         eval.append(evalSqlTemplate.substring(startPos));
 
-        return eval.toString();
+        String evalSql = eval.toString();
+        return BlackcatUtils.oneLineSql(evalSql);
     }
 
-    private static String createEvalBoundParam(SimpleDateFormat simpleDateFormat, Object boundParam) {
+    private static String createEvalBoundParam(Object boundParam) {
         if (boundParam == null) return "NULL";
         if (boundParam instanceof Boolean)
             return (Boolean) boundParam ? "1" : "0";
         if (boundParam instanceof Number) return boundParam.toString();
         if (boundParam instanceof Date)
-            return '\'' + simpleDateFormat.format((Date) boundParam) + '\'';
+            return '\'' + new DateTime(boundParam).toString("yyyy-MM-DD HH:mm:ss") + '\'';
         if (boundParam instanceof byte[])
             return '\'' + Hex.encode((byte[]) boundParam) + '\'';
 
-        return '\'' + escapeSingleQuotes(boundParam.toString()) + '\'';
+        String strParam = boundParam.toString();
+        return '\'' + strParam.replaceAll("'", "''") + '\'';
     }
 
-    public static String escapeSingleQuotes(String stringValue) {
-        return stringValue.replaceAll("'", "''");
-    }
 }

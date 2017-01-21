@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap
+        PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+        "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap>
+    <typeAlias alias="HashMap" type="java.util.HashMap"/>
+    <resultMap class="com.github.bingoohuang.ibatis.ErrorCodeMapping" id="errorCodeMappingBean">
+        <result property="sspCode" column="ERROR_CODE"/>
+        <result property="uniCode" column="UNICOM_CODE"/>
+        <result property="desc" column="ERROR_MESSAGE"/>
+    </resultMap>
+
+    <select id="qrySerialNumberByOldResourcesCode" resultClass="String" parameterClass="java.util.HashMap">
+        SELECT '123' AS SN from DUAL where 1 = #OldResourcesCode#
+    </select>
+
+    <select id="test1" resultClass="HashMap">
+        <![CDATA[
+            SELECT *
+            FROM DIAMOND_STONES
+            WHERE id = #id#
+          ]]>
+    </select>
+    <update id="updateDescription">
+        UPDATE DIAMOND_STONES SET DESCRIPTION = 'HELLO'
+    </update>
+    <delete id="deleteOne" parameterClass="java.util.HashMap"> <![CDATA[
+        DELETE FROM DIAMOND_STONES WHERE ID =  #id#
+    ]]></delete>
+    <insert id="insertOne">
+        INSERT INTO DIAMOND_STONES (id, data_id, group_id, content, description, valid, gmt_create, gmt_modified)
+        VALUES ('ABC^TEST8', 'TEST8', 'ABC', '{PBE}iLQKXFxh0aFgRFlFg+j0uw', 'HELLO', 1, '2015-09-06 15:42:11', '2016-01-27 18:06:41')
+    </insert>
+
+    <insert id="insertDiamond" parameterClass="java.util.HashMap">
+        INSERT INTO DIAMOND_STONES (id, data_id, group_id, content, description, valid, gmt_create, gmt_modified)
+        VALUES (#id#, #dataId#, #groupId#, #content#, #desc#, 1, '2015-09-06 15:42:11', '2016-01-27 18:06:41')
+    </insert>
+
+    <select id="test2" resultClass="HashMap">
+        SELECT *
+        FROM DIAMOND_STONES
+    </select>
+
+    <select id="getErrorCodeMapping" resultMap="errorCodeMappingBean">
+        <![CDATA[
+        SELECT ERROR_CODE, UNICOM_CODE, ERROR_MESSAGE
+        FROM TD_M_UNICOM_ERROR_RELATION
+        -- LIMIT 1,5
+        ]]>
+    </select>
+</sqlMap>
