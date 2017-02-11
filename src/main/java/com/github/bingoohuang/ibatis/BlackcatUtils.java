@@ -1,6 +1,6 @@
 package com.github.bingoohuang.ibatis;
 
-import com.github.bingoohuang.blackcat.javaagent.callback.Blackcat;
+import com.github.bingoohuang.blackcat.instrument.callback.Blackcat;
 import org.joda.time.DateTime;
 
 import java.sql.Date;
@@ -19,12 +19,12 @@ public class BlackcatUtils {
     }
 
     public static boolean HasBlackcat = classExists(
-            "com.github.bingoohuang.blackcat.javaagent.callback.Blackcat");
+            "com.github.bingoohuang.blackcat.instrument.callback.Blackcat");
 
     public static void log(String msgType, String pattern, Object... args) {
         if (!HasBlackcat) return;
 
-        Blackcat.log(msgType, pattern, args);
+        Blackcat.trace(msgType, pattern, args);
     }
 
 

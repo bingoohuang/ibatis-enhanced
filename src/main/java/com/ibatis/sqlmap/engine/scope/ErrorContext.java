@@ -1,6 +1,6 @@
 package com.ibatis.sqlmap.engine.scope;
 
-import com.github.bingoohuang.blackcat.javaagent.callback.Blackcat;
+import com.github.bingoohuang.ibatis.BlackcatUtils;
 
 import java.util.regex.Pattern;
 
@@ -28,7 +28,7 @@ public class ErrorContext {
         if (objectId != null
                 && !"applying a result map".equals(activity) // 结果映射的排除
                 && !ExcludedId.matcher(objectId).find()) // 辅助的排除
-            Blackcat.log("SQL.ID", "ID:{}, RESOURCE:{}, ACTIVITY:{}", objectId, resource, activity);
+            BlackcatUtils.log("SQL.ID", "ID:{}, RESOURCE:{}, ACTIVITY:{}", objectId, resource, activity);
     }
 
     public String getActivity() {
