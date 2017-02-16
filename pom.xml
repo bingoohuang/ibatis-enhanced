@@ -4,7 +4,7 @@
 
     <groupId>com.github.bingoohuang</groupId>
     <artifactId>ibatis-enhanced</artifactId>
-    <version>0.0.8</version>
+    <version>0.0.9-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>ibatis-enhanced</name>
@@ -48,7 +48,7 @@
         <dependency>
             <groupId>com.github.bingoohuang</groupId>
             <artifactId>blackcat-instrument</artifactId>
-            <version>0.0.7</version>
+            <version>0.0.8</version>
             <optional>true</optional>
         </dependency>
         <dependency>

@@ -1,6 +1,8 @@
 package com.ibatis.sqlmap.engine.scope;
 
-import com.github.bingoohuang.ibatis.BlackcatUtils;
+import com.github.bingoohuang.ibatis.IbatisTrace;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.regex.Pattern;
 
@@ -8,18 +10,14 @@ import java.util.regex.Pattern;
  * An error context to help us create meaningful error messages
  */
 public class ErrorContext {
-    private String resource;
-    private String activity;
-    private String objectId;
-    private String moreInfo;
-    private Throwable cause;
+    @Getter private String resource;
+    @Getter @Setter private String activity;
+    @Getter @Setter private String objectId;
+    @Getter @Setter private String moreInfo;
+    @Getter @Setter private Throwable cause;
 
-    public String getResource() {
-        return resource;
-    }
-
-
-    static Pattern ExcludedId = Pattern.compile("-(?:SelectKey|AutoResultMap|InlineParameterMap)$");
+    private static final Pattern EXCLUDED_OBJECTID_PATTERN
+            = Pattern.compile("-(?:SelectKey|AutoResultMap|InlineParameterMap)$");
 
     public void setResource(String resource) {
         this.resource = resource;
@@ -27,44 +25,13 @@ public class ErrorContext {
         // 这里依赖setActivity, setObjectId在setResource之前调用
         if (objectId != null
                 && !"applying a result map".equals(activity) // 结果映射的排除
-                && !ExcludedId.matcher(objectId).find()) // 辅助的排除
-            BlackcatUtils.log("SQL.ID", "ID:{}, RESOURCE:{}, ACTIVITY:{}", objectId, resource, activity);
-    }
-
-    public String getActivity() {
-        return activity;
-    }
-
-    public void setActivity(String activity) {
-        this.activity = activity;
-    }
-
-    public String getObjectId() {
-        return objectId;
-    }
-
-    public void setObjectId(String objectId) {
-        this.objectId = objectId;
-    }
-
-    public String getMoreInfo() {
-        return moreInfo;
-    }
-
-    public void setMoreInfo(String moreInfo) {
-        this.moreInfo = moreInfo;
-    }
-
-    public Throwable getCause() {
-        return cause;
-    }
-
-    public void setCause(Throwable cause) {
-        this.cause = cause;
+                && !EXCLUDED_OBJECTID_PATTERN.matcher(objectId).find()) {// 辅助的排除
+            IbatisTrace.setSqlId(objectId);
+        }
     }
 
     public String toString() {
-        StringBuffer message = new StringBuffer();
+        StringBuilder message = new StringBuilder();
 
         // resource
         if (resource != null) {
@@ -112,6 +79,4 @@ public class ErrorContext {
         moreInfo = null;
         cause = null;
     }
-
-
 }

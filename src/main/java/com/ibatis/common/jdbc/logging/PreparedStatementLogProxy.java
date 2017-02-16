@@ -1,14 +1,14 @@
 package com.ibatis.common.jdbc.logging;
 
-import com.alibaba.fastjson.JSON;
-import com.github.bingoohuang.ibatis.BlackcatUtils;
+import com.github.bingoohuang.ibatis.IbatisTrace;
 import com.ibatis.common.beans.ClassInfo;
 import com.ibatis.common.logging.Log;
 import com.ibatis.common.logging.LogFactory;
+import lombok.Getter;
+import lombok.SneakyThrows;
 import lombok.val;
 
 import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.CallableStatement;
@@ -28,12 +28,15 @@ public class PreparedStatementLogProxy
         extends BaseLogProxy implements InvocationHandler {
     private static final Log log = LogFactory.getLog(PreparedStatement.class);
 
-    private PreparedStatement statement;
-    private String sql;
+    @Getter private final PreparedStatement preparedStatement;
+    private final String sql;
+    private final IbatisTrace ibatisTrace;
 
-    private PreparedStatementLogProxy(PreparedStatement stmt, String sql) {
-        this.statement = stmt;
+    private PreparedStatementLogProxy(
+            PreparedStatement stmt, String sql, IbatisTrace ibatisTrace) {
+        this.preparedStatement = stmt;
         this.sql = sql;
+        this.ibatisTrace = ibatisTrace;
     }
 
     protected List columnValues = new ArrayList();
@@ -45,87 +48,81 @@ public class PreparedStatementLogProxy
         columnValues.add(value);
     }
 
-    public Object invoke(Object proxy, Method method, Object[] params)
-            throws Throwable {
+    public Object invoke(Object proxy, Method method, Object[] params) throws Throwable {
         try {
             if (EXECUTE_METHODS.contains(method.getName())) {
-                String valueString = getValueString();
-                if (BlackcatUtils.HasBlackcat && !"[]".equals(valueString)) {
-                    BlackcatUtils.log("SQL.Parameters", valueString);
-                    BlackcatUtils.log("SQL.Eval", createEvalSql(sql, columnValues));
-                }
-
-                if (log.isDebugEnabled()) {
-//                    log.debug("{pstm-" + id + "} Executing Statement: " + oneLineSql);
-                    log.debug("{pstm-" + id + "} Parameters: " + valueString);
-//                    log.debug("{pstm-" + id + "} Types: " + getTypeString());
-                    log.debug("{pstm-" + id + "} Eval: " + createEvalSql(sql, columnValues));
-                }
-                clearColumnInfo();
-                if ("executeQuery".equals(method.getName())) {
-                    val rs = (ResultSet) method.invoke(statement, params);
-                    return rs != null ? ResultSetLogProxy.newInstance(rs) : null;
-                } else {
-                    return method.invoke(statement, params);
-                }
+                return processExecuteMethod(method, params);
             }
 
             if (SET_METHODS.contains(method.getName())) {
                 setColumn(params[0], "setNull".equals(method.getName()) ? null : params[1]);
-                return method.invoke(statement, params);
+                return method.invoke(preparedStatement, params);
             }
 
-            return getObject(proxy, method, params, statement);
+            return getObject(proxy, method, params, preparedStatement, ibatisTrace);
         } catch (Throwable t) {
             throw ClassInfo.unwrapThrowable(t);
         }
     }
 
-    public static Object getObject(
-            Object proxy, Method method, Object[] params, Statement statement
-    ) throws IllegalAccessException, InvocationTargetException {
+    @SneakyThrows
+    private Object processExecuteMethod(Method method, Object[] params) {
+        String valueString = getValueString();
+        ibatisTrace.setParams(valueString);
+        String evalSql = createEvalSql(sql, columnValues);
+        ibatisTrace.setEval(evalSql);
+        if (log.isDebugEnabled() && !"[]".equals(valueString)) {
+            log.debug("{pstm-" + id + "} Parameters: " + valueString);
+            log.debug("{pstm-" + id + "} Eval: " + evalSql);
+        }
+
+        clearColumnInfo();
+        Object invoke = method.invoke(preparedStatement, params);
+        if (!"executeQuery".equals(method.getName())) {
+            return invoke;
+        }
+
+        val rs = (ResultSet) invoke;
+        return rs != null ? ResultSetLogProxy.newInstance(rs, ibatisTrace) : null;
+    }
+
+    @SneakyThrows
+    public static Object getObject(Object proxy, Method method, Object[] params,
+                                   Statement statement, IbatisTrace ibatisTrace) {
         if ("getResultSet".equals(method.getName())) {
-            ResultSet rs = (ResultSet) method.invoke(statement, params);
-            return rs != null ? ResultSetLogProxy.newInstance(rs) : null;
+            val rs = (ResultSet) method.invoke(statement, params);
+            return rs != null ? ResultSetLogProxy.newInstance(rs, ibatisTrace) : null;
         }
 
         if ("equals".equals(method.getName())) {
             Object ps = params[0];
-            return new Boolean(ps instanceof Proxy && proxy == ps);
+            return ps instanceof Proxy && proxy == ps;
         }
 
         if ("hashCode".equals(method.getName())) {
-            return new Integer(proxy.hashCode());
+            return proxy.hashCode();
         }
 
         Object result = method.invoke(statement, params);
-        if ("getUpdateCount".equals(method.getName()))
-            BlackcatUtils.log("SQL.UpdateCount", JSON.toJSONString(result));
-
+        if ("getUpdateCount".equals(method.getName())) {
+            ibatisTrace.setResult(result);
+        }
         return result;
     }
 
     /**
      * Creates a logging version of a PreparedStatement
      *
-     * @param stmt - the statement
-     * @param sql  - the sql statement
+     * @param stmt        - the statement
+     * @param sql         - the sql statement
+     * @param ibatisTrace
      * @return - the proxy
      */
-    public static PreparedStatement newInstance(PreparedStatement stmt, String sql) {
-        InvocationHandler handler = new PreparedStatementLogProxy(stmt, sql);
-        ClassLoader cl = PreparedStatement.class.getClassLoader();
-        return (PreparedStatement) Proxy.newProxyInstance(cl,
-                new Class[]{PreparedStatement.class, CallableStatement.class}, handler);
+    public static PreparedStatement newInstance(
+            PreparedStatement stmt, String sql, IbatisTrace ibatisTrace) {
+        val handler = new PreparedStatementLogProxy(stmt, sql, ibatisTrace);
+        val cl = PreparedStatement.class.getClassLoader();
+        Class[] interfaces = {PreparedStatement.class, CallableStatement.class};
+        return (PreparedStatement) Proxy.newProxyInstance(cl, interfaces, handler);
     }
-
-    /**
-     * Return the wrapped prepared statement
-     *
-     * @return the PreparedStatement
-     */
-    public PreparedStatement getPreparedStatement() {
-        return statement;
-    }
-
 }

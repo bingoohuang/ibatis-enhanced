@@ -1,35 +1,50 @@
 package com.ibatis.common.jdbc.logging;
 
-import com.github.bingoohuang.ibatis.BlackcatUtils;
+import com.github.bingoohuang.ibatis.IbatisTrace;
 import com.ibatis.common.beans.ClassInfo;
 import com.ibatis.common.logging.Log;
 import com.ibatis.common.logging.LogFactory;
+import lombok.Getter;
 import lombok.val;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * ResultSet proxy to add logging
  */
 public class ResultSetLogProxy extends BaseLogProxy implements InvocationHandler {
     private static final Log log = LogFactory.getLog(ResultSet.class);
+    private final IbatisTrace ibatisTrace;
 
-    int rows = 0;
     boolean first = true;
-    private ResultSet rs;
+    @Getter private ResultSet rs;
 
-    private ResultSetLogProxy(ResultSet rs) {
+    private ResultSetLogProxy(ResultSet rs, IbatisTrace ibatisTrace) {
         super();
         this.rs = rs;
-        if (log.isDebugEnabled()) {
-            log.debug("{rset-" + id + "} ResultSet");
-        }
+        this.ibatisTrace = ibatisTrace;
     }
 
-    static int maxRows = 5;
+    protected List columnValues = new ArrayList();
+
+    @Override
+    protected void setColumn(Object key, Object value) {
+        super.setColumn(key, value);
+        columnValues.add(value);
+    }
+
+    @Override
+    protected void clearColumnInfo() {
+        super.clearColumnInfo();
+        columnValues = new ArrayList();
+    }
+
+    public static final int MAX_ROWS = 10;
 
     public Object invoke(Object proxy, Method method, Object[] params) throws Throwable {
         try {
@@ -43,37 +58,34 @@ public class ResultSetLogProxy extends BaseLogProxy implements InvocationHandler
                 boolean isNext = "next".equals(methodName);
                 boolean isClose = "close".equals(methodName);
                 if (isNext || isClose) {
-                    if (isNext && (Boolean) result) ++rows;
+                    if (isNext && (Boolean) result) {
+                        ibatisTrace.incrTotalRows();
+                    }
 
                     String s = getValueString();
                     if (!"[]".equals(s)) {
                         if (first) {
                             first = false;
                             String columnString = getColumnString();
-                            BlackcatUtils.log("SQL.Header", columnString);
 
                             if (log.isDebugEnabled())
                                 log.debug("{rset-" + id + "} Header: " + columnString);
                         }
 
-                        if (rows <= maxRows + 1)
-                            BlackcatUtils.log("SQL.Result", s);
+                        if (ibatisTrace.getRows() < MAX_ROWS) {
+                            ibatisTrace.addRow(columnValues);
 
-                        if (log.isDebugEnabled() && rows <= maxRows + 1)
-                            log.debug("{rset-" + id + "} Result: " + s);
+                            if (log.isDebugEnabled())
+                                log.debug("{rset-" + id + "} Result: " + s);
+                        }
                     }
 
                     if (isNext && !(Boolean) result) {
-                        if (log.isDebugEnabled() && rows > maxRows + 1)
-                            log.debug("{rset-" + id + "} Result rows "
-                                    + (rows - maxRows) + " ignored: ");
-                    }
+                        if (log.isDebugEnabled() && ibatisTrace.getTotalRows() > MAX_ROWS)
+                            log.debug("{rset-" + id + "} Result totalRows "
+                                    + (ibatisTrace.getTotalRows() - MAX_ROWS) + " ignored: ");
 
-                    int ignoredRows = rows - maxRows - 1;
-                    if (ignoredRows > 0 && isClose) {
-                        BlackcatUtils.log("SQL.Result",
-                                "[And more " + ignoredRows
-                                        + " rows ignored]");
+                        ibatisTrace.setResult(ibatisTrace.getResultSet());
                     }
 
                     clearColumnInfo();
@@ -88,23 +100,14 @@ public class ResultSetLogProxy extends BaseLogProxy implements InvocationHandler
     /**
      * Creates a logging version of a ResultSet
      *
-     * @param rs - the ResultSet to proxy
+     * @param rs          - the ResultSet to proxy
+     * @param ibatisTrace - IbatisTrace
      * @return - the ResultSet with logging
      */
-    public static ResultSet newInstance(ResultSet rs) {
-        val handler = new ResultSetLogProxy(rs);
+    public static ResultSet newInstance(ResultSet rs, IbatisTrace ibatisTrace) {
+        val handler = new ResultSetLogProxy(rs, ibatisTrace);
         val cl = ResultSet.class.getClassLoader();
-        return (ResultSet) Proxy.newProxyInstance(cl,
-                new Class[]{ResultSet.class}, handler);
+        Class[] interfaces = {ResultSet.class};
+        return (ResultSet) Proxy.newProxyInstance(cl, interfaces, handler);
     }
-
-    /**
-     * Get the wrapped result set
-     *
-     * @return the resultSet
-     */
-    public ResultSet getRs() {
-        return rs;
-    }
-
 }

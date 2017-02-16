@@ -1,9 +1,11 @@
 package com.github.bingoohuang.ibatis;
 
 import com.github.bingoohuang.blackcat.instrument.callback.Blackcat;
+import com.github.bingoohuang.blackcat.instrument.utils.Collections;
 import org.joda.time.DateTime;
 
 import java.sql.Date;
+import java.util.Collection;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -20,13 +22,6 @@ public class BlackcatUtils {
 
     public static boolean HasBlackcat = classExists(
             "com.github.bingoohuang.blackcat.instrument.callback.Blackcat");
-
-    public static void log(String msgType, String pattern, Object... args) {
-        if (!HasBlackcat) return;
-
-        Blackcat.trace(msgType, pattern, args);
-    }
-
 
     static Pattern OneLineTrimPattern = Pattern.compile("[\\s\r\n]+");
 
@@ -85,4 +80,25 @@ public class BlackcatUtils {
         return '\'' + strParam.replaceAll("'", "''") + '\'';
     }
 
+
+    public static void trace(IbatisTrace ibatisTrace) {
+        if (!HasBlackcat) return;
+
+        String traceParams = ibatisTrace.getParams();
+        String paramsAndPrepared =
+                (traceParams == null || "[]".equals(traceParams))
+                        ? "" : ", Params:" + traceParams + ", Prepared:" + ibatisTrace.getPrepared();
+        String msg = "ID:" + IbatisTrace.getSqlId()
+                + ", SQL:" + ibatisTrace.getEval()
+                + paramsAndPrepared
+                + ", Result:" + compressResult(ibatisTrace);
+        Blackcat.trace("SQL", msg);
+    }
+
+    private static Object compressResult(IbatisTrace ibatisTrace) {
+        Object result = ibatisTrace.getResult();
+        if (!(result instanceof Collection)) return result;
+
+        return Collections.compressResult((Collection<Object>) result);
+    }
 }

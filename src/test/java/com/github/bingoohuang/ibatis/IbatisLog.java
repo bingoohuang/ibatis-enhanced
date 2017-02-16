@@ -1,6 +1,6 @@
 package com.github.bingoohuang.ibatis;
 
-import com.github.bingoohuang.blackcat.javaagent.callback.Blackcat;
+import com.github.bingoohuang.blackcat.instrument.callback.Blackcat;
 import com.google.common.base.Splitter;
 import com.ibatis.sqlmap.client.SqlMapClient;
 import lombok.Cleanup;

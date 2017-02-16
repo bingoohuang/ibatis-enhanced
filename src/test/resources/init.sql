@@ -381,8 +381,7 @@ INSERT INTO TD_M_UNICOM_ERROR_RELATION (error_code, unicom_code, error_message) 
 INSERT INTO TD_M_UNICOM_ERROR_RELATION (error_code, unicom_code, error_message) VALUES ('ssp_business_243', '2107000076', '查询无记录');
 INSERT INTO TD_M_UNICOM_ERROR_RELATION (error_code, unicom_code, error_message) VALUES ('aop_business_007', '2107010007', '省份返回结果集有误，不能办理！');
 INSERT INTO TD_M_UNICOM_ERROR_RELATION (error_code, unicom_code, error_message) VALUES ('ssp_business_228', '2107000052', '办理类业务查询服务返回参数入库失败!');
-INSERT INTO TD_M_UNICOM_ERROR_RELATION (error_code, unicom_code, error_message) VALUES ('ssp_business_208', '2107000052', '办理类业务查询服务返回参数入库失败!
-');
+INSERT INTO TD_M_UNICOM_ERROR_RELATION (error_code, unicom_code, error_message) VALUES ('ssp_business_208', '2107000052', '办理类业务查询服务返回参数入库失败!');
 INSERT INTO TD_M_UNICOM_ERROR_RELATION (error_code, unicom_code, error_message) VALUES ('ssp_business_078', '2107020149', '对不起，您不是3G预付费20元套餐用户，不能办理20元套餐业务!');
 INSERT INTO TD_M_UNICOM_ERROR_RELATION (error_code, unicom_code, error_message) VALUES ('ssp_business_079', '2107020150', '不存在该用户信息!');
 INSERT INTO TD_M_UNICOM_ERROR_RELATION (error_code, unicom_code, error_message) VALUES ('ssp_business_080', '2107000022', '3G预付费20元套餐，不能办理3G流量包业务');

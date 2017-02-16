@@ -1,10 +1,11 @@
 package com.ibatis.common.jdbc.logging;
 
 import com.github.bingoohuang.ibatis.BlackcatUtils;
-import com.google.common.base.Throwables;
+import com.github.bingoohuang.ibatis.IbatisTrace;
 import com.ibatis.common.beans.ClassInfo;
 import com.ibatis.common.logging.Log;
 import com.ibatis.common.logging.LogFactory;
+import lombok.Getter;
 import lombok.val;
 
 import java.lang.reflect.InvocationHandler;
@@ -20,53 +21,38 @@ import java.sql.Statement;
 public class ConnectionLogProxy extends BaseLogProxy implements InvocationHandler {
     private static final Log log = LogFactory.getLog(Connection.class);
 
-    private Connection connection;
+    @Getter private Connection connection;
 
     private ConnectionLogProxy(Connection conn) {
         super();
         this.connection = conn;
-        if (log.isDebugEnabled()) {
-            log.debug("{conn-" + id + "} Connection");
-        }
     }
 
     public Object invoke(Object proxy, Method method, Object[] params)
             throws Throwable {
+        IbatisTrace ibatisTrace = new IbatisTrace();
         try {
-
-            if ("prepareStatement".equals(method.getName())) {
+            if ("prepareStatement".equals(method.getName()) || "prepareCall".equals(method.getName())) {
                 String param0 = (String) params[0];
                 String oneLineSql = BlackcatUtils.oneLineSql(param0);
-                BlackcatUtils.log("SQL.Preparing", oneLineSql);
+                ibatisTrace.setPrepared(oneLineSql);
 
                 if (log.isDebugEnabled()) {
-                    log.debug("{conn-" + id + "} Preparing Statement: " + oneLineSql);
+                    log.debug("{conn-" + id + "} " + method.getName() + ": " + oneLineSql);
                 }
                 val stmt = (PreparedStatement) method.invoke(connection, params);
-                return PreparedStatementLogProxy.newInstance(stmt, param0);
-            }
-
-            if ("prepareCall".equals(method.getName())) {
-                String param0 = (String) params[0];
-                String oneLineSql = BlackcatUtils.oneLineSql(param0);
-                BlackcatUtils.log("SQL.Preparing", oneLineSql);
-
-                if (log.isDebugEnabled()) {
-                    log.debug("{conn-" + id + "} Preparing Call: " + oneLineSql);
-                }
-                val stmt = (PreparedStatement) method.invoke(connection, params);
-                return PreparedStatementLogProxy.newInstance(stmt, param0);
+                return PreparedStatementLogProxy.newInstance(stmt, param0, ibatisTrace);
             }
 
             if ("createStatement".equals(method.getName())) {
                 val stmt = (Statement) method.invoke(connection, params);
-                return StatementLogProxy.newInstance(stmt);
+                return StatementLogProxy.newInstance(stmt, ibatisTrace);
             }
 
             return method.invoke(connection, params);
         } catch (Throwable t) {
             Throwable t1 = ClassInfo.unwrapThrowable(t);
-            BlackcatUtils.log("SQL.ERROR", Throwables.getStackTraceAsString(t1));
+            ibatisTrace.setThrowable(t1);
             log.error("Error calling Connection." + method.getName() + ':', t1);
             throw t1;
         }
@@ -84,14 +70,4 @@ public class ConnectionLogProxy extends BaseLogProxy implements InvocationHandle
         ClassLoader cl = Connection.class.getClassLoader();
         return (Connection) Proxy.newProxyInstance(cl, new Class[]{Connection.class}, handler);
     }
-
-    /**
-     * return the wrapped connection
-     *
-     * @return the connection
-     */
-    public Connection getConnection() {
-        return connection;
-    }
-
 }
